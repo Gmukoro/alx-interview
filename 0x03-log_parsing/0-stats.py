@@ -1,54 +1,44 @@
 #!/usr/bin/python3
-
 import sys
+import signal
 
 
-def print_msg(dict_sc, total_file_size):
-    """
-    Method to print
-    Args:
-        dict_sc: dict of status codes
-        total_file_size: total of the file
-    Returns:
-        Nothing
-    """
-
+def print_stats(total_file_size, status_code_counts):
     print("File size: {}".format(total_file_size))
-    for key, val in sorted(dict_sc.items()):
-        if val != 0:
-            print("{}: {}".format(key, val))
+    for code in sorted(status_code_counts.keys()):
+        if status_code_counts[code] > 0:
+            print("{}: {}".format(code, status_code_counts[code]))
 
 
 total_file_size = 0
-code = 0
-counter = 0
-dict_sc = {"200": 0,
-           "301": 0,
-           "400": 0,
-           "401": 0,
-           "403": 0,
-           "404": 0,
-           "405": 0,
-           "500": 0}
+line_count = 0
+status = {200: 0, 301: 0, 400: 0, 401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
 
-try:
-    for line in sys.stdin:
-        parsed_line = line.split()  # ✄ trimming
-        parsed_line = parsed_line[::-1]  # inverting
 
-        if len(parsed_line) > 2:
-            counter += 1
+def signal_handler(sig, frame):
+    print_stats(total_file_size, status)
+    sys.exit(0)
 
-            if counter <= 10:
-                total_file_size += int(parsed_line[0])  # file size
-                code = parsed_line[1]  # status code
+signal.signal(signal.SIGINT, signal_handler)
 
-                if (code in dict_sc.keys()):
-                    dict_sc[code] += 1
+for line in sys.stdin:
+    parts = line.split()
+    if len(parts) < 7:
+        continue
 
-            if (counter == 10):
-                print_msg(dict_sc, total_file_size)
-                counter = 0
+    try:
+        file_size = int(parts[-1])
+        status_code = int(parts[-2])
+    except ValueError:
+        continue
 
-finally:
-    print_msg(dict_sc, total_file_size)
+    total_file_size += file_size
+    if status_code in status:
+        status[status_code] += 1
+
+    line_count += 1
+
+    if line_count % 10 == 0:
+        print_stats(total_file_size, status)
+
+print_stats(total_file_size, status)
