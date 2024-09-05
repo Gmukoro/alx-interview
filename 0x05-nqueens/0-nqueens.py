@@ -8,7 +8,7 @@ import sys
 def generate_solutions(row, column):
     solu = [[]]
     for queen in range(row):
-        solu = place_queen(queen, column, solution)
+        solu = place_queen(queen, column, solu)
     return solu
 
 
